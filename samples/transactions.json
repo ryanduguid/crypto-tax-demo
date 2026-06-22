@@ -1,0 +1,49 @@
+[
+  {
+    "_comment": "Buy — not taxable, sets cost basis.",
+    "type": "buy",
+    "date": "2024-12-01",
+    "asset": "ETH",
+    "amount": 2,
+    "cost_basis_usd": 4000.00
+  },
+  {
+    "_comment": "MONEY SHOT — crypto-to-crypto swap. People assume no cash = no tax. It's a taxable disposal at FMV.",
+    "type": "swap",
+    "date": "2025-03-01",
+    "asset_out": "ETH",
+    "amount_out": 2,
+    "asset_in": "SOL",
+    "fmv_usd": 4800.00,
+    "cost_basis_usd": 4000.00,
+    "acquire_date": "2024-12-01"
+  },
+  {
+    "_comment": "MONEY SHOT 2 — spending crypto is a disposal too.",
+    "type": "spend",
+    "date": "2025-04-15",
+    "asset": "ETH",
+    "amount": 0.05,
+    "fmv_usd": 130.00,
+    "cost_basis_usd": 100.00,
+    "acquire_date": "2024-12-01"
+  },
+  {
+    "_comment": "Staking reward — ordinary income at FMV on receipt.",
+    "type": "reward",
+    "date": "2025-02-01",
+    "asset": "SOL",
+    "amount": 1,
+    "fmv_usd": 150.00
+  },
+  {
+    "_comment": "Plain sale of long-held BTC — taxable, long-term.",
+    "type": "sell",
+    "date": "2025-05-01",
+    "asset": "BTC",
+    "amount": 0.1,
+    "proceeds_usd": 9500.00,
+    "cost_basis_usd": 4000.00,
+    "acquire_date": "2021-06-01"
+  }
+]
