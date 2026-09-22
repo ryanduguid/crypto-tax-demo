@@ -16,12 +16,15 @@ from __future__ import annotations
 from datetime import date
 
 
-def _days(a: str, b: str) -> int | None:
+def _holding_period(a: str, b: str) -> tuple[int, bool] | None:
     try:
-        ay, am, ad = map(int, a.split("-"))
-        by, bm, bd = map(int, b.split("-"))
-        return (date(by, bm, bd) - date(ay, am, ad)).days
-    except Exception:
+        acquired, disposed = date.fromisoformat(a), date.fromisoformat(b)
+        if disposed < acquired:
+            return None
+        # Publication 550: compare calendar dates, not a fixed number of days.
+        long_term = (disposed.year, disposed.month, disposed.day) > (acquired.year + 1, acquired.month, acquired.day)
+        return (disposed - acquired).days, long_term
+    except (TypeError, ValueError):
         return None
 
 
@@ -44,9 +47,14 @@ def check(ev: dict, oa_skill: dict) -> dict:
 
     # Disposal: sell / swap / spend
     gain = round(ev["proceeds_usd"] - ev["cost_basis_usd"], 2)
-    days = _days(ev["acquire_date"], ev["date"])
-    term = "long-term" if (days is not None and days >= rules.get("long_term_min_days", 366)) else "short-term"
-    term_note = f"{term}" + (f" (held {days} days)" if days is not None else "")
+    period = _holding_period(ev.get("acquire_date"), ev.get("date"))
+    if period is None:
+        term = "unclassified"
+        term_note = "Holding period unknown; confirm acquisition and disposal dates"
+    else:
+        days, long_term = period
+        term = "long-term" if long_term else "short-term"
+        term_note = f"{term} (held {days} days)"
     sign = "gain" if gain >= 0 else "loss"
 
     if t == "swap":

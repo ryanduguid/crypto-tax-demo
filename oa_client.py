@@ -76,7 +76,6 @@ _MOCK_SKILL = {
         "tax_year": 2025,
         "rules": {
             # Illustrative — production reads these from the skill.
-            "long_term_min_days": 366,
             "taxable_disposals": ["sell", "swap", "spend"],   # crypto-to-crypto AND spending are disposals
             "swap_is_disposal": True,    # IRS treats crypto-to-crypto as a sale at FMV
             "spend_is_disposal": True,   # paying with crypto is a disposal
