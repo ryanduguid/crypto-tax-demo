@@ -1,63 +1,68 @@
 #!/usr/bin/env python3
-"""crypto transaction history -> OpenAccountants crypto-tax pipeline.
+"""Run the illustrative crypto calculation against the documented JSON format."""
 
-    python pipeline.py                      # bundled sample history (mock mode)
-    python pipeline.py samples/transactions.json
-
-The flow:
-    crypto events -> OA MCP (start -> get_skill) -> classify each event -> verdict
-
-Works with an exchange CSV export, a Rotki export, or an onchain pull. Set
-OA_MCP_TOKEN to use the live verified rules.
-"""
-
-from __future__ import annotations
-
-import os
+import argparse
+from pathlib import Path
 import sys
+import textwrap
 
 import crypto_client
 import crypto_check
 from oa_client import OAClient
 
-STATUS = {"ok": "✅", "warn": "⚠️ ", "info": "ℹ️ "}
 
-
-def run(source: str, oa: OAClient) -> None:
+def run(source: str, oa: OAClient) -> bool:
     events = crypto_client.extract(source)
-    plan = oa.start("Classify crypto tax events", "US")
-    slug = (plan.get("skills_to_load") or [None])[0]
-    skill = oa.get_skill(slug) if slug else {}
-
-    for ev in events:
-        f = crypto_client.normalize(ev)
-        if f["type"] == "swap":
-            line = f"{f['amount']:g} {f['asset']} → {f['received']}"
-        elif f["type"] == "buy":
-            line = f"{f['amount']:g} {f['asset']} for cash"
-        elif f["type"] == "reward":
-            line = f"{f['amount']:g} {f['asset']} reward"
-        else:
-            line = f"{f['amount']:g} {f['asset']}"
-        print(f"\n🪙  {f['type']} · {f['date']} · {line}")
-
-        v = crypto_check.check(f, skill)
-        trust = f"tier {v.get('tier')}" + (f", signed off by {v['verifier']}" if v.get("verifier") else "")
-        print(f"    OpenAccountants → {v.get('oa_skill_name') or 'crypto-tax rules'}  ({trust})")
-        print(f"    {STATUS.get(v['status'], '')} {v['headline']}")
-        if v["detail"]:
-            print(f"       {v['detail']}")
+    plan = oa.start("Classify illustrative crypto events", "US")
+    if not isinstance(plan, dict):
+        raise ValueError("start must return an object")
+    skills = plan.get("skills_to_load", [])
+    if not isinstance(skills, list) or any(not isinstance(slug, str) for slug in skills):
+        raise ValueError("skills_to_load must be an array of names")
+    skill = oa.get_skill(skills[0]) if skills else {}
+    complete = True
+    for index, event in enumerate(events, 1):
+        try:
+            facts = crypto_client.normalize(event)
+            verdict = crypto_check.check(facts, skill)
+        except ValueError as error:
+            print(f"\nEvent {index}: invalid input: {error}")
+            complete = False
+            continue
+        amount = "unknown amount" if facts["amount"] is None else f"{facts['amount']:g}"
+        print(f"\n🪙  {facts['type'] or 'unknown type'} · {facts['date'] or 'unknown date'} · "
+              f"{amount} {facts['asset'] or 'unknown asset'}")
+        trust = ("unverified sample rules" if verdict["provenance"] == "sample"
+                 else "provider metadata; not independently verified")
+        print(f"    OpenAccountants → {verdict.get('oa_skill_name') or 'crypto rules'} ({trust})")
+        marker = "ℹ️" if verdict["complete"] else "⚠️"
+        print(f"    {marker} {verdict['headline']}")
+        print(textwrap.fill(verdict["detail"], width=96, initial_indent="       ", subsequent_indent="       "))
+        if not verdict["complete"]:
+            if verdict["gain"] is not None:
+                print(f"       Supplied proceeds less basis: {crypto_check.money(verdict['gain'])}.")
+            if verdict["term"] is not None:
+                print(f"       Supplied holding term: {verdict['term']}.")
+        complete = complete and verdict["complete"]
+    return complete
 
 
 def main(argv: list[str]) -> int:
-    oa = OAClient()
-    mode = "LIVE" if oa.live else "MOCK (set OA_MCP_TOKEN to use the live verified rules)"
-    print(f"crypto → OpenAccountants · crypto-tax demo  [{mode}]")
-    here = os.path.dirname(os.path.abspath(__file__))
-    source = argv[1] if len(argv) > 1 else os.path.join(here, "samples", "transactions.json")
-    run(source, oa)
-    print()
-    return 0
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("source", nargs="?", default=str(Path(__file__).parent / "samples/transactions.json"))
+    parser.add_argument("--live", action="store_true", help="use the unverified live adapter")
+    args = parser.parse_args(argv[1:])
+    oa = OAClient() if args.live else OAClient(token=None)
+    if args.live and not oa.live:
+        parser.error("--live requires OA_MCP_TOKEN")
+    mode = "LIVE ADAPTER (unverified)" if oa.live else "BUNDLED ILLUSTRATIVE RULES"
+    print(f"crypto → OpenAccountants · event demo [{mode}]")
+    try:
+        complete = run(args.source, oa)
+    except (OSError, ValueError, RuntimeError) as error:
+        print(f"Calculation failed: {error}", file=sys.stderr)
+        return 2
+    return 0 if complete else 2
 
 
 if __name__ == "__main__":

@@ -1,71 +1,106 @@
-# crypto → OpenAccountants: crypto-tax demo
+# crypto → OpenAccountants: illustrative event calculations
 
-**The pitch in one line:** Your exchange/wallet/onchain history is a list of moves. OpenAccountants tells you which ones are **taxable events** and how — including the ones everyone gets wrong — signed off by a named licensed accountant. No keys, no signup.
+Read a documented JSON event format and calculate supplied proceeds less basis,
+a supported holding period or a supported reward receipt. The bundled rules are
+unverified examples. The output does not establish professional sign-off or an
+exact tax liability.
 
-```
-transaction history (exchange CSV / Rotki export / onchain)
-  └─ { buy, sell, swap, spend, reward }
-        └─ OpenAccountants MCP  →  load the verified crypto-tax skill
-              └─ Verdict:  ⚠️ crypto-to-crypto swap = taxable disposal (no cash needed)   ← the catch
-                           ⚠️ spending crypto = taxable disposal
-                           ⚠️ staking reward = ordinary income at receipt
-                           ✅ long-held sale = long-term gain   ·   ℹ️ buy = not taxable
-                 · gain + holding term computed
-                 · the named CPA who signed off the rules
-```
-
-![crypto → OpenAccountants demo](demo.svg)
-
-> Regenerate the visual: `python make_svg.py` (static SVG, no deps) · animated GIF: `brew install vhs && vhs demo.tape`
-
-## Why this one
-
-Crypto tax is where the most-confident wrong assumptions live. The single biggest: *"I didn't cash out, so I don't owe tax."* But in the US a **crypto-to-crypto swap is a disposal at fair value** — taxable the moment you trade ETH for SOL. Same for **spending** crypto, and **staking rewards** are ordinary income on receipt. OpenAccountants is the layer that knows which moves are events and which aren't.
-
-- **The data source = the moves** (exchange, wallet, onchain).
-- **OpenAccountants = the tax treatment**, with verified rules and a named accountant behind them.
-
-## What it shows
-
-A sample history run through the OpenAccountants MCP:
-
-| Event | Verdict |
-|---|---|
-| Buy ETH with cash | ℹ️ Not taxable — sets cost basis |
-| **Swap ETH → SOL** | ⚠️ **Taxable disposal — short-term gain (no cash received)** |
-| **Spend ETH on a purchase** | ⚠️ **Taxable disposal** |
-| Staking reward | ⚠️ Ordinary income at fair value |
-| Sell long-held BTC | ✅ Long-term gain |
-
-**The money shot:** the ETH→SOL **swap**. No dollars changed hands, so it *feels* tax-free — but it's a disposal of the ETH at fair value, with a real gain. Catching that (and the "spending crypto is a disposal" one) is exactly the value OpenAccountants adds on top of any wallet or exchange.
+![Illustrative crypto calculations](demo.svg)
 
 ## Run it
 
-```bash
-git clone https://github.com/openaccountants/crypto-tax-demo
-cd crypto-tax-demo
-python pipeline.py                      # bundled sample history (mock mode, no keys)
-python pipeline.py samples/transactions.json
-```
-
-### Go live
+Python 3.10 or later and the standard library are sufficient.
 
 ```bash
-export OA_MCP_TOKEN=...     # OpenAccountants account token (uses the live verified rules)
 python pipeline.py
+python pipeline.py samples/transactions.json
+python -m unittest discover -s tests -v
+python make_svg.py
 ```
+
+The default command and SVG generator always use the bundled examples.
+Empty, incomplete or invalid input returns exit code 2. Valid rows remain visible when
+another row is incomplete or invalid. No exchange, wallet, CSV, Rotki or
+Etherscan adapter is included. The five sample records are independent examples,
+not a reconciled portfolio or inventory ledger.
+
+## Supported facts and calculations
+
+The example assumes a US individual using the cash method, holding ordinary
+investment property. It does not calculate filing obligations, net tax, tax
+rates, lot selection, income thresholds or special holding-period adjustments.
+
+| Event | Required facts beyond asset, amount and event date | Result |
+|---|---|---|
+| `buy` | `paid_with_cash: true`, supplied adjusted `cost_basis_usd` | Cash acquisition with no disposal gain in this example |
+| `sell`, `swap`, `spend` | Supplied `proceeds_usd`, adjusted `cost_basis_usd`, `acquire_date`, `acquisition_method: "purchase"` | Gain or loss and a supported holding term |
+| `swap` | The disposal facts above and `received` or `asset_in` | Disposal of the outgoing asset |
+| `reward` | `reward_kind: "staking"` or `"hard_fork_airdrop"`, `dominion_and_control: true`, supplied fair market value | Illustrative ordinary income on the date control was obtained |
+
+Supply one acquisition lot per disposal record. Proceeds and adjusted basis
+must already include applicable fee adjustments; the demo does not calculate
+fees or basis. Gifts, inheritance, transfers, loans, derivatives and multiple
+lots within one record are outside the supported calculation.
+
+Gain equals proceeds less basis using decimal arithmetic. Explicit zero values
+remain zero; absent values remain unknown. A missing date can leave that value
+difference known while the holding term remains unresolved. A zero result is
+reported as no gain or loss.
+
+## Holding period and sources
+
+The term uses more than a calendar year, following the general rule in
+[IRS Publication 550](https://www.irs.gov/publications/p550#en_US_2025_publink100010540).
+A purchase on 1 March 2023 followed by a sale on 1 March 2024 is short-term
+despite spanning 366 days. A sale on 2 March 2024 is long-term under the
+ordinary-purchase assumptions.
+
+29 February acquisitions remain incomplete because their calendar boundary has
+not been independently verified for this demo. Missing dates and unsupported
+acquisition methods also remain incomplete. Impossible or reversed dates are
+invalid; none defaults to short-term.
+
+The supported reward assumptions follow the IRS guidance on
+[staking validation rewards](https://www.irs.gov/irb/2023-33_IRB#REV-RUL-2023-14)
+and [hard-fork airdrops](https://www.irs.gov/individuals/international-taxpayers/frequently-asked-questions-on-virtual-currency-transactions).
+A generic reward label or ledger timestamp alone does not prove receipt or
+control. Other airdrop types remain unsupported.
+
+## JSON contract
+
+- Use `YYYY-MM-DD` dates and explicit JSON Booleans. Strings such as
+  `"false"` and numeric Boolean substitutes are rejected.
+- Amounts, proceeds and basis accept numeric JSON values or decimal strings.
+  Values must be finite, non-negative, at most `1e12` and have no more than
+  18 decimal places. The calculation uses 50 digits of precision.
+- Monetary fields are USD values. Display rounds to cents using half-up
+  rounding; stored gain retains the exact difference.
+- Supported aliases are `asset_out` for `asset`, `amount_out` for `amount`,
+  `asset_in` for `received` and `fmv_usd` for `proceeds_usd`.
+  Text fields are trimmed. Conflicting aliases are rejected, including explicit
+  zero or null versus a populated alternate value.
+- Unknown event types and incompatible loaded rule contracts remain incomplete.
+  A supplied `is_disposal` flag must agree with the recognised event type.
+
+## Optional live adapter
+
+`python pipeline.py --live` opts into the experimental JSON-RPC adapter and
+requires `OA_MCP_TOKEN` configured outside the repository. The live
+authentication and response contract have not been verified. Failed live calls
+never fall back to bundled rules.
+
+The supported rule contract is the `ordinary-us-crypto-v1` dictionary in
+`oa_client.py`. A legacy `long_term_min_days` rule is incompatible with calendar
+classification. Provider tier, verifier and source metadata remain reported
+information, not independent attestation.
 
 ## Files
 
 | File | Role |
-|------|------|
-| `pipeline.py` | Orchestrator + CLI: history → OA → verdict report |
-| `crypto_client.py` | Normalizes events from an exchange/Rotki/onchain export |
-| `oa_client.py` | OpenAccountants MCP JSON-RPC client (live or mock) |
-| `crypto_check.py` | Classifies each event → verdict |
-| `samples/transactions.json` | A small transaction history |
-
-## Honest notes
-
-- `crypto_check.py` does **classification + gain + term, not an exact tax figure** (which needs total income, filing status, NIIT, wash-sale and specific-ID nuances). Production leans on the full OA skill + an agent step; the named-CPA sign-off makes the verdict relianceable.
-- Rules (swap/spend as disposals, rewards as income, >1yr long-term cutoff) are 2025 US treatment; live, every value comes from `get_skill`. The verifier (Amir Pelinkovic) is the real OpenAccountants US lead.
+|---|---|
+| `pipeline.py` | CLI and complete, incomplete or invalid result reporting |
+| `crypto_client.py` | JSON extraction and normalisation |
+| `crypto_check.py` | Supported event calculations and calendar classification |
+| `oa_client.py` | Bundled rules and experimental live adapter |
+| `samples/transactions.json` | Five fabricated events |
+| `tests/` | Offline calculation, adapter and command-line regressions |
