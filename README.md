@@ -94,6 +94,11 @@ The supported rule contract is the `ordinary-us-crypto-v1` dictionary in
 classification. Provider tier, verifier and source metadata remain reported
 information, not independent attestation.
 
+JSON inputs and provider responses reject duplicate object properties and
+non-standard numeric constants instead of silently choosing a value.
+Control characters in supplied text appear as visible escapes. Redirected
+output tolerates encodings that cannot represent the display symbols.
+
 ## Files
 
 | File | Role |
@@ -103,4 +108,6 @@ information, not independent attestation.
 | `crypto_check.py` | Supported event calculations and calendar classification |
 | `oa_client.py` | Bundled rules and experimental live adapter |
 | `samples/transactions.json` | Five fabricated events |
+| `reporting.py` | Visible control-character escapes and portable output |
+| `json_contract.py` | JSON object and numeric-token validation |
 | `tests/` | Offline calculation, adapter and command-line regressions |

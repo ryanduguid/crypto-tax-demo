@@ -9,6 +9,7 @@ import textwrap
 import crypto_client
 import crypto_check
 from oa_client import OAClient
+from reporting import configure_output, safe_text
 
 
 def run(source: str, oa: OAClient) -> bool:
@@ -26,18 +27,18 @@ def run(source: str, oa: OAClient) -> bool:
             facts = crypto_client.normalize(event)
             verdict = crypto_check.check(facts, skill)
         except ValueError as error:
-            print(f"\nEvent {index}: invalid input: {error}")
+            print(f"\nEvent {index}: invalid input: {safe_text(error)}")
             complete = False
             continue
         amount = "unknown amount" if facts["amount"] is None else f"{facts['amount']:g}"
-        print(f"\n🪙  {facts['type'] or 'unknown type'} · {facts['date'] or 'unknown date'} · "
-              f"{amount} {facts['asset'] or 'unknown asset'}")
+        print(f"\n🪙  {safe_text(facts['type'] or 'unknown type')} · {facts['date'] or 'unknown date'} · "
+              f"{amount} {safe_text(facts['asset'] or 'unknown asset')}")
         trust = ("unverified sample rules" if verdict["provenance"] == "sample"
                  else "provider metadata; not independently verified")
-        print(f"    OpenAccountants → {verdict.get('oa_skill_name') or 'crypto rules'} ({trust})")
+        print(f"    OpenAccountants → {safe_text(verdict.get('oa_skill_name') or 'crypto rules')} ({trust})")
         marker = "ℹ️" if verdict["complete"] else "⚠️"
-        print(f"    {marker} {verdict['headline']}")
-        print(textwrap.fill(verdict["detail"], width=96, initial_indent="       ", subsequent_indent="       "))
+        print(f"    {marker} {safe_text(verdict['headline'])}")
+        print(textwrap.fill(safe_text(verdict["detail"]), width=96, initial_indent="       ", subsequent_indent="       "))
         if not verdict["complete"]:
             if verdict["gain"] is not None:
                 print(f"       Supplied proceeds less basis: {crypto_check.money(verdict['gain'])}.")
@@ -48,6 +49,7 @@ def run(source: str, oa: OAClient) -> bool:
 
 
 def main(argv: list[str]) -> int:
+    configure_output()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", nargs="?", default=str(Path(__file__).parent / "samples/transactions.json"))
     parser.add_argument("--live", action="store_true", help="use the unverified live adapter")
@@ -60,7 +62,7 @@ def main(argv: list[str]) -> int:
     try:
         complete = run(args.source, oa)
     except (OSError, ValueError, RuntimeError) as error:
-        print(f"Calculation failed: {error}", file=sys.stderr)
+        print(f"Calculation failed: {safe_text(error)}", file=sys.stderr)
         return 2
     return 0 if complete else 2
 
