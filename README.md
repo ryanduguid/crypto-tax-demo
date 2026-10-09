@@ -1,5 +1,9 @@
 # crypto → OpenAccountants: illustrative event calculations
 
+**Fork status**
+
+[![Fork code quality](https://app.codacy.com/project/badge/Grade/5ddd3de3beb5492da2840d5b04ecbbcb?branch=main)](https://app.codacy.com/gh/ryanduguid/crypto-tax-demo/dashboard)
+
 Read a documented JSON event format and calculate supplied proceeds less basis,
 a supported holding period or a supported reward receipt. The bundled rules are
 unverified examples. The output does not establish professional sign-off or an
