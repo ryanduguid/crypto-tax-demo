@@ -1,17 +1,19 @@
 # crypto → OpenAccountants: crypto-tax demo
 
-**The pitch in one line:** Your exchange/wallet/onchain history is a list of moves. OpenAccountants tells you which ones are **taxable events** and how — including the ones everyone gets wrong — signed off by a named licensed accountant. No keys, no signup.
+Demonstrates crypto-event classification from a sample transaction history using OpenAccountants sample rules, with an optional live MCP connection.
+
+Default runs use bundled sample responses. Their rates, verdicts and reviewer labels are illustrative fixtures, not evidence that an accountant reviewed the demo or a live Guide. For live use, check the fetched Guide's review status, reviewer, version and review date against the [review method](https://www.openaccountants.com/review-method). A jurisdiction lead's name alone does not establish review. Have a qualified professional review outputs before filing or acting on them.
 
 ```
 transaction history (exchange CSV / Rotki export / onchain)
   └─ { buy, sell, swap, spend, reward }
-        └─ OpenAccountants MCP  →  load the verified crypto-tax skill
+        └─ OpenAccountants MCP  →  load the crypto-tax skill
               └─ Verdict:  ⚠️ crypto-to-crypto swap = taxable disposal (no cash needed)   ← the catch
                            ⚠️ spending crypto = taxable disposal
                            ⚠️ staking reward = ordinary income at receipt
                            ✅ long-held sale = long-term gain   ·   ℹ️ buy = not taxable
                  · gain + holding term computed
-                 · the named CPA who signed off the rules
+                 · the Guide version's published review record, if present
 ```
 
 ![crypto → OpenAccountants demo](demo.svg)
@@ -23,7 +25,7 @@ transaction history (exchange CSV / Rotki export / onchain)
 Crypto tax is where the most-confident wrong assumptions live. The single biggest: *"I didn't cash out, so I don't owe tax."* But in the US a **crypto-to-crypto swap is a disposal at fair value** — taxable the moment you trade ETH for SOL. Same for **spending** crypto, and **staking rewards** are ordinary income on receipt. OpenAccountants is the layer that knows which moves are events and which aren't.
 
 - **The data source = the moves** (exchange, wallet, onchain).
-- **OpenAccountants = the tax treatment**, with verified rules and a named accountant behind them.
+- **OpenAccountants = the tax treatment**, using the loaded rules; check the Guide version's review record.
 
 ## What it shows
 
@@ -51,7 +53,7 @@ python pipeline.py samples/transactions.json
 ### Go live
 
 ```bash
-export OA_MCP_TOKEN=...     # OpenAccountants account token (uses the live verified rules)
+export OA_MCP_TOKEN=...     # OpenAccountants account token (uses live Guide content; check review status)
 python pipeline.py
 ```
 
@@ -67,5 +69,5 @@ python pipeline.py
 
 ## Honest notes
 
-- `crypto_check.py` does **classification + gain + term, not an exact tax figure** (which needs total income, filing status, NIIT, wash-sale and specific-ID nuances). Production leans on the full OA skill + an agent step; the named-CPA sign-off makes the verdict relianceable.
-- Rules (swap/spend as disposals, rewards as income, >1yr long-term cutoff) are 2025 US treatment; live, every value comes from `get_skill`. The verifier (Amir Pelinkovic) is the real OpenAccountants US lead.
+- `crypto_check.py` does **classification + gain + term, not an exact tax figure** (which needs total income, filing status, NIIT, wash-sale and specific-ID nuances). Production leans on the full OA skill + an agent step; professional review must be established for the specific Guide version and your facts.
+- Rules (swap/spend as disposals, rewards as income, >1yr long-term cutoff) are 2025 US treatment; the bundled reviewer label is illustrative. Inspect the actual `get_skill` response and its review record in live mode.
