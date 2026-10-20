@@ -2,7 +2,7 @@
 
 **Fork status**
 
-[![Fork code quality](https://app.codacy.com/project/badge/Grade/5ddd3de3beb5492da2840d5b04ecbbcb?branch=main)](https://app.codacy.com/gh/ryanduguid/crypto-tax-demo/dashboard)
+[![Fork code quality](https://img.shields.io/codacy/grade/5ddd3de3beb5492da2840d5b04ecbbcb/main?style=flat&labelColor=000000)](https://app.codacy.com/gh/ryanduguid/crypto-tax-demo/dashboard)
 
 Read a documented JSON event format and calculate supplied proceeds less basis,
 a supported holding period or a supported reward receipt. The bundled rules are
