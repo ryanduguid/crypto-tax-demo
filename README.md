@@ -4,7 +4,7 @@
 
 **Fork status**
 
-[![Fork code quality](https://img.shields.io/codacy/grade/5ddd3de3beb5492da2840d5b04ecbbcb/main?style=flat&labelColor=000000)](https://app.codacy.com/gh/ryanduguid/crypto-tax-demo/dashboard)
+[![Fork code quality](https://img.shields.io/codacy/grade/5ddd3de3beb5492da2840d5b04ecbbcb/main?style=flat&labelColor=000000)](https://app.codacy.com/gh/ryanduguid/crypto-tax-demo/dashboard) [![Fork quality gate](https://sonarcloud.io/api/project_badges/measure?project=ryanduguid_crypto-tax-demo&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ryanduguid_crypto-tax-demo)
 
 </div>
 
