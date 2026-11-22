@@ -4,6 +4,10 @@ from decimal import Decimal, ROUND_HALF_UP, localcontext
 
 from crypto_client import DISPOSALS, EVENTS
 
+RULES = {"schema": "ordinary-us-crypto-v1", "holding_period": "more_than_calendar_year",
+         "taxable_disposals": ["sell", "swap", "spend"],
+         "reward_policy": "staking_or_hard_fork_airdrop_with_control"}
+
 
 def holding_term(acquired, disposed):
     if acquired is None or disposed is None:
@@ -37,19 +41,13 @@ def check(ev: dict, oa_skill: dict) -> dict:
         with localcontext() as context:
             context.prec = 50
             base["gain"] = proceeds - basis
-    expected = {"schema": "ordinary-us-crypto-v1", "holding_period": "more_than_calendar_year",
-                "taxable_disposals": ["sell", "swap", "spend"],
-                "reward_policy": "staking_or_hard_fork_airdrop_with_control"}
-    if not isinstance(rules, dict) or rules != expected:
+    if not isinstance(rules, dict) or rules != RULES:
         return {**base, "status": "incomplete", "headline": "Unsupported rule contract",
                 "detail": "The loaded rules do not match the supported illustrative calculation."}
     if kind not in EVENTS:
         return {**base, "status": "incomplete", "headline": "Unsupported event type",
                 "detail": "Use the documented buy, sell, swap, spend or reward format."}
-    missing = []
-    for key in ("asset", "amount", "date"):
-        if ev.get(key) is None or ev.get(key) == "":
-            missing.append(key)
+    missing = [key for key in ("asset", "amount", "date") if ev.get(key) in (None, "")]
     if kind == "buy":
         if ev.get("paid_with_cash") is not True:
             missing.append("explicit cash-payment confirmation")
