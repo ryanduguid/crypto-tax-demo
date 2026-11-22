@@ -14,7 +14,7 @@ def holding_term(acquired, disposed):
         return None
     if disposed < acquired:
         raise ValueError("disposal precedes acquisition")
-    # Scope: leap-day acquisitions need a verified calendar boundary before classification.
+    # chisle: Leap-day acquisitions need a verified calendar boundary before classification.
     if (acquired.month, acquired.day) == (2, 29):
         return None
     boundary = (acquired.year + 1, acquired.month, acquired.day)
